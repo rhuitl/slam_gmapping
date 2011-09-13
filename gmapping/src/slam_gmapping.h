@@ -28,6 +28,9 @@
 #include "gmapping/gridfastslam/gridslamprocessor.h"
 #include "gmapping/sensor/sensor_base/sensor.h"
 
+#include <dynamic_reconfigure/server.h>
+#include <gmapping/GMappingConfig.h>
+
 #include <boost/thread.hpp>
 
 class SlamGMapping
@@ -53,6 +56,7 @@ class SlamGMapping
     message_filters::Subscriber<sensor_msgs::LaserScan>* scan_filter_sub_;
     tf::MessageFilter<sensor_msgs::LaserScan>* scan_filter_;
     tf::TransformBroadcaster* tfB_;
+    dynamic_reconfigure::Server<gmapping::GMappingConfig>* server_;
 
     GMapping::GridSlamProcessor* gsp_;
     GMapping::RangeSensor* gsp_laser_;
@@ -85,7 +89,9 @@ class SlamGMapping
     bool initMapper(const sensor_msgs::LaserScan& scan);
     bool addScan(const sensor_msgs::LaserScan& scan, GMapping::OrientedPoint& gmap_pose);
     double computePoseEntropy();
-    
+
+    void reconfigurationCallback(gmapping::GMappingConfig &config, uint32_t level);
+
     // Parameters used by GMapping
     double maxRange_;
     double maxUrange_;
@@ -117,4 +123,5 @@ class SlamGMapping
     double llsamplestep_;
     double lasamplerange_;
     double lasamplestep_;
+    gmapping::GMappingConfig config_;
 };

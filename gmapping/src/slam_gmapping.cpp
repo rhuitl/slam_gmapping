@@ -218,6 +218,10 @@ SlamGMapping::SlamGMapping():
   if(!private_nh_.getParam("lasamplestep", lasamplestep_))
     lasamplestep_ = 0.005;
 
+  // Callback for dynamic reconfiguration
+  server_ = new dynamic_reconfigure::Server<gmapping::GMappingConfig>();
+  server_->setCallback(boost::bind(&SlamGMapping::reconfigurationCallback, this, _1, _2));
+
   entropy_publisher_ = private_nh_.advertise<std_msgs::Float64>("entropy", 1, true);
   sst_ = node_.advertise<nav_msgs::OccupancyGrid>("map", 1, true);
   sstm_ = node_.advertise<nav_msgs::MapMetaData>("map_metadata", 1, true);
@@ -467,6 +471,11 @@ SlamGMapping::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 
   static ros::Time last_map_update(0,0);
 
+  // Drop scans when user requested that no scans should be added. Can be useful
+  // if we have to wait for some external event (e.g., odometry stabilizing).
+  if(!config_.add_scans)
+    return;
+
   // We can't initialize the mapper until we've got the first scan
   if(!got_first_scan_)
   {
@@ -502,7 +511,8 @@ SlamGMapping::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
                                  tf::Point(      odom_to_map.getOrigin() ) ).inverse();
     map_to_odom_mutex_.unlock();
 
-    if(!got_map_ || (scan->header.stamp - last_map_update) > map_update_interval_)
+    if(config_.update_map &&
+       (!got_map_ || (scan->header.stamp - last_map_update) > map_update_interval_))
     {
       updateMap(*scan);
       last_map_update = scan->header.stamp;
@@ -671,4 +681,17 @@ void SlamGMapping::publishTransform()
   ros::Time tf_expiration = ros::Time::now() + ros::Duration(0.05);
   tfB_->sendTransform( tf::StampedTransform (map_to_odom_, ros::Time::now(), map_frame_, odom_frame_));
   map_to_odom_mutex_.unlock();
+}
+
+void SlamGMapping::reconfigurationCallback(gmapping::GMappingConfig &config,
+                                           uint32_t level)
+{
+  if(config_.add_scans != config.add_scans)
+    ROS_INFO("Incoming laser scans are %s.",
+             config.add_scans ? "used" : "NOT used (GMapping is paused)");
+
+  if(config_.update_map != config.update_map)
+    ROS_INFO("Map updates are %s.", config.update_map ? "enabled" : "disabled");
+
+  config_ = config;
 }

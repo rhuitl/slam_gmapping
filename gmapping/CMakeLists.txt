@@ -26,3 +26,9 @@ rosbuild_download_test_data(http://pr.willowgarage.com/data/gmapping/hallway_slo
 #rosbuild_download_test_data(http://pr.willowgarage.com/data/gmapping/basic_localization_stage_groundtruth.pgm test/basic_localization_stage_groundtruth.pgm abf208f721053915145215b18c98f9b3)
 rosbuild_add_rostest(test/basic_localization_stage.launch)
 rosbuild_add_rostest(test/basic_localization_laser_different_beamcount.test)
+
+# Dynamic reconfiguration to enable/disable incorporation of laser scans and
+# map updates at runtime.
+rosbuild_find_ros_package(dynamic_reconfigure)
+include(${dynamic_reconfigure_PACKAGE_PATH}/cmake/cfgbuild.cmake)
+gencfg()
