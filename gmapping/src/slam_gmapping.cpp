@@ -508,7 +508,9 @@ SlamGMapping::laserCallback(const sensor_msgs::LaserScan::ConstPtr& scan)
 
     map_to_odom_mutex_.lock();
     map_to_odom_ = tf::Transform(tf::Quaternion( odom_to_map.getRotation() ),
-                                 tf::Point(      odom_to_map.getOrigin() ) ).inverse();
+                                 tf::Point( odom_to_map.getOrigin().getX(),
+                                            odom_to_map.getOrigin().getY(),
+                                            0. /* never adjust Z */ ) ).inverse();
     map_to_odom_mutex_.unlock();
 
     if(config_.update_map &&
